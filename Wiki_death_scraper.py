@@ -36,11 +36,11 @@ if eval(year)<=2016 and eval(year)>=2007:
         
 #Assign appropriate number of days to each month (February will on ocassion have 29 days, I will miss 1 day of values. OK)        
         if month == "January" or month == "March" or month == "May" or month == "July" or month == "August" or month == "October" or month == "December":
-            days = range(0, 31)
+            days = range(1, 32)
         elif month == "April" or month == "June" or month == "September" or month == "November":
-            days = range(0, 30)
+            days = range(1, 31)
         elif month == "February":
-            days = range (0, 28)
+            days = range (1, 29)
         
         for day in days:
 #Dig through the XML    
@@ -80,10 +80,15 @@ if eval(year)<=2016 and eval(year)>=2007:
                     text =  temp[i]["#text"]
                     Other.append(text)
                     
+                    text = re.sub( r'\([^)]*\)', '', text) #removes everything in parethneses. It tends to be years that would confuse the script below
                     #age
                     a = re.findall(r'\d+',text) #finds all numbers
-                    if len(a)==1:
-                        a = int(a[0])
+                    if len(a)==1: # there is only one number returned, it has to be age (some very few errors, ~<0.1%, expected)
+                        a = int(a[0]) 
+                        Age.append(a)
+                    # what happens if there are still other numbers included in the text?
+                    elif len(a[0]) <= 3: # if the first number has a naximum of 3 digits it has to be age
+                        a = int(a[0]) 
                         Age.append(a)
                     else:
                         Age.append("NA") #if more than one numbers are present I cannot guarantee I can ID the age without further work
