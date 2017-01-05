@@ -12,7 +12,7 @@ if eval(year)<=2016 and eval(year)>=2007:
 
 #Useful variables for looping
     base_url = "https://en.wikipedia.org/wiki/Deaths_in_" 
-    months = ["January","February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    months = ["January"]#,"February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 #Useful reference variables
     wesco = ["english","welsh","irish","scottish","british", "american", "canadian", "australian","zealand" ] # Western-English speaking country of origin
@@ -36,46 +36,62 @@ if eval(year)<=2016 and eval(year)>=2007:
         
 #Assign appropriate number of days to each month (February will on ocassion have 29 days, I will miss 1 day of values. OK)        
         if month == "January" or month == "March" or month == "May" or month == "July" or month == "August" or month == "October" or month == "December":
-            days = range(1, 32)
+            #days = range(1, 32)
+            days = range(1, 10)
         elif month == "April" or month == "June" or month == "September" or month == "November":
             days = range(1, 31)
         elif month == "February":
             days = range (1, 29)
         
         for day in days:
-#Dig through the XML    
-            temp = xmltodict.parse(data)["html"]["body"]["div"][2]["div"][2]["div"][3]["ul"][day]["li"]
-            for i in range(len(temp)):
-                Day.append(day+1)
-                Month.append(month)
-                Year.append(year)
+            Day.append(day)
+            Month.append(month)
+            Year.append(year)
+#Dig through the XML 
+            try:   #. Some years follow the 0-base and others the 1-base caounting for days of the month. First try 1-base (most)
+                temp = xmltodict.parse(data)["html"]["body"]["div"][2]["div"][2]["div"][3]["ul"][day]["li"]
+                for i in range(len(temp)):
+#Extract name 
+                    try: #.. Some years dont need the [0] in the page structure
+                        found = temp[i]["a"][0]["#text"]
+                    except: #.. I cannot find the expected syntax
+                        try:    #...
+                            found = temp[i]["a"]["#text"]
+                        except: #... I cannot find an entry even if I remove the '[0]'
+                            found = "NA"
 
-#Extract name and wikipedia entry text length (words)(there will be a slight overestimation because of non-ascii characters)
+            except: #. OK I cannot find anything with 1-base. It has to be 0-base
+                try: #. Now try the 0-base 
+                    temp = xmltodict.parse(data)["html"]["body"]["div"][2]["div"][2]["div"][3]["ul"][day-1]["li"]
+                    for i in range(len(temp)):
+#Extract name 
+                        try: #.. Some years dont need the [0] in the page structure
+                            found = temp[i]["a"][0]["#text"]
+                        except: #.. Can I find a valid entry if I remove '[0]' from 'temp[i]["a"][0]["@href"]'?
+                            try:    #...
+                                found = temp[i]["a"]["#text"]
+                            except: #... I cannot find an entry even if I remove the '[0]'
+                                found = "NA"
+                except: #.
+                    found = "NA"
+            ID.append(found) #name
+#wikipedia entry text length (words)(there will be a slight overestimation because of non-ascii characters)
+            if found != "NA":
+
                 try:
-                    ref = temp[i]["a"][0]["@href"]
-                    try:
-                        start = ref.find('/wiki/') + 6
-                        found = ref[start:]
-                    except:
-                        found = "NA"
-                    ID.append(found) #name
-
-                    if found != "NA":
-                        try:
-                            wiki = WikiApi()
-                            results = wiki.find(found)
-                            article = wiki.get_article(results[0])
-                            a = article.content
-                            a = a.split()
-                            RefLength.append(len(a))
-                        except:
-                            RefLength.append("NA")
-                    else:
-                        RefLength.append("NA")
-                except:
-                    ID.append("NA")
+                    wiki = WikiApi()
+                    results = wiki.find(found)
+                    article = wiki.get_article(results[0])
+                    a = article.content
+                    a = a.split()
+                    RefLength.append(len(a))
+                except: #....
                     RefLength.append("NA")
+            else: #-
+                RefLength.append("NA")             
+
 #Extract age, Western-English speaking country of origin (WESCO), celebrity-prone-profession (CPP)
+            for i in range(len(temp)):
                 try:
                     text =  temp[i]["#text"]
                     Other.append(text)
@@ -129,7 +145,7 @@ if eval(year)<=2016 and eval(year)>=2007:
      'Text': [x.encode('ascii', 'ignore') for x in Other]
     })
     temp = temp[["Year","Month","Day","Name","Age","ImportanceIndex","WESCO","CPP","Text"]]
-    name = year + "_results.csv"
+    name = "V2/"+year + "_results.csv"
     temp.to_csv(name)
 
 
